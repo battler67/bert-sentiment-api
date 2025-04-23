@@ -1,31 +1,26 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI
+from pydantic import BaseModel
 from transformers import pipeline
-import os
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
 
-# Load the sentiment model once to avoid reloading it for every request
+# Load model once
 sentiment_pipeline = pipeline("sentiment-analysis")
 
-@app.route('/')
+class TextRequest(BaseModel):
+    text: str
+
+@app.get("/")
 def home():
-    return "BERT Sentiment API is running!"
+    return {"message": "BERT Sentiment API is running!"}
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
+@app.post("/analyze")
+def analyze(request: TextRequest):
     try:
-        data = request.get_json()
-        if not data or "text" not in data:
-            return jsonify({"error": "No 'text' key provided in the request"}), 400
-        text = data["text"]
+        text = request.text
+        if not text:
+            return {"error": "No text provided"}
         result = sentiment_pipeline(text)
-        return jsonify(result)
+        return {"result": result}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    # Ensure your app listens on the $PORT environment variable for Render
-    port = int(os.getenv("PORT", 10000))  # Default to 10000 if PORT is not set
-    app.run(host='0.0.0.0', port=port)  # Use the dynamic $PORT environment variable
+        return {"error": str(e)}
