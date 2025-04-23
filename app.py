@@ -1,49 +1,20 @@
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
+import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 from transformers import pipeline
-import torch
 
-# Initialize FastAPI app
-app = FastAPI()
+app = Flask(__name__)
+CORS(app)
 
-# Load the BERT sentiment analysis model
-# Note: This may take a few seconds during cold starts
-sentiment_pipeline = pipeline(
-    "sentiment-analysis", 
-    model="nlptown/bert-base-multilingual-uncased-sentiment"
-)
+sentiment_pipeline = pipeline("sentiment-analysis")
 
-# Define the data model for the input
-class Review(BaseModel):
-    review: str
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    data = request.json
+    text = data.get('text', '')
+    result = sentiment_pipeline(text)
+    return jsonify(result)
 
-# Root endpoint (for Render health check)
-@app.get("/")
-async def home():
-    return {"message": "BERT Sentiment Analysis API is live!"}
-
-# Endpoint to analyze sentiment
-@app.post("/analyze")
-async def analyze_sentiment(data: Review):
-    try:
-        result = sentiment_pipeline(data.review)[0]
-        label = result["label"]
-        score = result["score"]
-
-        # Map star labels to custom sentiment labels
-        if label in ["1 star", "2 stars"]:
-            sentiment = "Negative"
-        elif label == "3 stars":
-            sentiment = "Neutral"
-        else:
-            sentiment = "Positive"
-
-        return {
-            "sentiment": sentiment,
-            "confidence": round(score, 3)
-        }
-    except Exception as e:
-        return {
-            "error": str(e),
-            "message": "Failed to analyze sentiment. Please try again."
-        }
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8000))  # 👈 Use PORT env variable
+    app.run(host='0.0.0.0', port=port)
