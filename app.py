@@ -1,20 +1,33 @@
-import os
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from transformers import pipeline
+from fastapi import FastAPI
+from pydantic import BaseModel
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch
+from fastapi.middleware.cors import CORSMiddleware
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
 
-sentiment_pipeline = pipeline("sentiment-analysis")
+# CORS (so frontend can access)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    data = request.json
-    text = data.get('text', '')
-    result = sentiment_pipeline(text)
-    return jsonify(result)
+# Load model
+model_name = "nlptown/bert-base-multilingual-uncased-sentiment"
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 8000))  # 👈 Use PORT env variable
-    app.run(host='0.0.0.0', port=port)
+class ReviewInput(BaseModel):
+    review: str
+
+@app.post("/analyze")
+def analyze_sentiment(input: ReviewInput):
+    inputs = tokenizer(input.review, return_tensors="pt", truncation=True, padding=True)
+    outputs = model(**inputs)
+    scores = torch.nn.functional.softmax(outputs.logits, dim=1)
+    stars = torch.argmax(scores).item() + 1
+    confidence = round(scores[0][stars - 1].item(), 2)
+    return {"stars": stars, "confidence": confidence}
