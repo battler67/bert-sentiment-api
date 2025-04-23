@@ -1,6 +1,5 @@
-fastapi
-uvicorn
+Flask
+flask-cors
 transformers
 torch
-
-
+uvicorn
