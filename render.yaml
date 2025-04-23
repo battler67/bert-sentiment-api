@@ -8,3 +8,6 @@ services:
     envVars:
       - key: TRANSFORMERS_CACHE
         value: ./transformers_cache
+      - key: PORT
+        value: "10000"
+
