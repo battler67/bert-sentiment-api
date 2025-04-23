@@ -8,5 +8,6 @@ services:
     envVars:
       - key: TRANSFORMERS_CACHE
         value: ./transformers_cache
-      - key: PORT
-        value: "10000"  # Ensure that the PORT is dynamically assigned, you can use $PORT instead.
+      # The PORT variable is automatically set by Render, so it's usually not needed
+      # - key: PORT
+      #   value: "10000"  # Can be omitted as Render will provide the PORT
