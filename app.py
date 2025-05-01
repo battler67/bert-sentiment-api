@@ -4,6 +4,13 @@ from transformers import pipeline
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # You can replace "*" with specific origins like ["https://your-frontend.com"]
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Load model once
 sentiment_pipeline = pipeline("sentiment-analysis")
 
